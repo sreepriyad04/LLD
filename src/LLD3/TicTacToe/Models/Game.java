@@ -1,10 +1,15 @@
 package LLD3.TicTacToe.Models;
 
 import LLD3.TicTacToe.Exceptions.InvalidGameException;
-import LLD3.TicTacToe.Exceptions.InvalidMoveException;
+import LLD3.TicTacToe.Strategy.WinningStrategy.ColWinningStrategy;
+import LLD3.TicTacToe.Strategy.WinningStrategy.DiagonalWinningStrategy;
+import LLD3.TicTacToe.Strategy.WinningStrategy.RowWinningStrategy;
+import LLD3.TicTacToe.Strategy.WinningStrategy.WinningStartegy;
 
+import java.sql.SQLOutput;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 public class Game {
     private Board board;
@@ -13,14 +18,17 @@ public class Game {
     private Player winner;
     private GameState gameState;
     private int nextPlayerIndex;
+    private List<WinningStartegy> winningStartegies;
+    private final Scanner scanner = new Scanner(System.in);
 
-    private Game(Builder builder) {
+    private Game(Builder builder, List<WinningStartegy> winningStartegies) {
         this.board = new Board(builder.boardSize);
         this.players = builder.players;
         this.moves = new ArrayList<>();
         this.winner = null;
         this.gameState = GameState.IN_PROGRESS;
         this.nextPlayerIndex = 0;
+        this.winningStartegies = winningStartegies;
     }
 
     public Board getBoard() {
@@ -86,6 +94,10 @@ public class Game {
         int col = move.getCell().getCol();
 
         Cell cell = board.getBoard().get(row).get(col);
+        if(!cell.isEmpty()){
+            System.out.println("Cell is already filled. please try another cell");
+            return;
+        }
         cell.setCellState(CellState.FILLED);
         cell.setPlayer(currentPlayer);
 
@@ -98,8 +110,46 @@ public class Game {
         //Is there any problem here ?
         moves.add(move);
 
-        nextPlayerIndex = (nextPlayerIndex +1)%players.size();
+        if(checkWinner(move)){
+            gameState = GameState.WON;
+            winner = currentPlayer;
+        }else if(moves.size() == board.getSize()*board.getSize()){
+            gameState = GameState.DRAW;
+        }
+        this.board.printBoard();
+        System.out.println("Do you want to undo your move? y/n");
+        String isUndo = scanner.next();
 
+        if(isUndo.equals("y")){
+            undo();
+        }
+        else {
+            nextPlayerIndex = (nextPlayerIndex + 1) % players.size();
+        }
+
+    }
+    public boolean checkWinner(Move move){
+        for(WinningStartegy winningStartegy: winningStartegies){
+            if(winningStartegy.checkWinner(move, this.board, "n")){
+                return true;
+            }
+        }
+        return false;
+    }
+    public void undo() {
+        if (moves.isEmpty()) {
+            System.out.println("No moves to undo ");
+            return;
+        }
+        Move lastMove = moves.get(moves.size() - 1);
+        Cell cell = lastMove.getCell();
+        cell.setCellState(CellState.EMPTY);
+        cell.setPlayer(null);
+        for(WinningStartegy winningStartegy: winningStartegies){
+            winningStartegy.checkWinner(lastMove, this.board, "y");
+        }
+
+        System.out.println("The last move is undone. It's now "+ players.get(nextPlayerIndex).getName() + "'s move");
     }
     public static class Builder{
         private int boardSize;
@@ -117,6 +167,7 @@ public class Game {
             this.boardSize = boardSize;
             return this;
         }
+        
 
         public List<Player> getPlayers() {
             return players;
@@ -137,12 +188,25 @@ public class Game {
             //TODO: Implement this later
 
             //validate at most one bot
-            //TODO: Implement this later
+            int botCount = 0;
+            for(Player player: players){
+                if(player.getPlayerType() == PlayerType.BOT){
+                    botCount++;
+                }
+            }
+            if(botCount > 1){
+                //throw a new exception
+            }
+
         }
         public Game build() throws InvalidGameException {
             //valildations
             validate();
-            return new Game(this);
+            List<WinningStartegy> winningStartegies1 = new ArrayList<>();
+            winningStartegies1.add(new RowWinningStrategy());
+            winningStartegies1.add(new ColWinningStrategy());
+            winningStartegies1.add(new DiagonalWinningStrategy());
+            return new Game(this, winningStartegies1);
         }
     }
 }

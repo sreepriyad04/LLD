@@ -48,8 +48,7 @@ public abstract class Player {
     public boolean validateCell(int row,int col, Board board) {
         //rows - 0, 1, 2
         //col - 0, 1, 2
-        if(row <0 && row >= board.getSize() && col < 0 && col >=  board.getSize() ||
-                !board.getBoard().get(row).get(col).isEmpty()) {
+        if(row <0 && row >= board.getSize() && col < 0 && col >=  board.getSize()) {
             return false;
         }
         return true;

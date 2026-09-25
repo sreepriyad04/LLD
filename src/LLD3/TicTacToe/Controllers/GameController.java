@@ -19,12 +19,17 @@ public class GameController {
     public GameState getGameState(Game game){
         return game.getGameState();
     }
-    public Player getWinner(){
-        return null;
+    public Player getWinner(Game game){
+        return game.getWinner();
     }
     public void printBoard(Game game){
         game.getBoard().printBoard();
     }
+
+    public void undo(Game game){
+        game.undo();
+    }
+
 
     //startGame
     //makeMove
